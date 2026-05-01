@@ -5,9 +5,26 @@ const cors = require("cors");
 
 const app = express();
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
+];
+
 app.use(cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-    credentials: true
+    origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. curl, Postman, server-to-server)
+        if (!origin) return callback(null, true);
+        // Always allow Railway domains and any explicitly listed origin
+        if (
+            allowedOrigins.includes(origin) ||
+            /\.railway\.app$/.test(origin)
+        ) {
+            return callback(null, true);
+        }
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
 }));
 app.use(express.json());
 
